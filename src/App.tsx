@@ -6,6 +6,7 @@ import AgGrid from "./pages/AgGrid";
 import GlideDataGrid from "./pages/GlideDataGrid";
 import TanstackTable from "./pages/TanstackTable";
 import DevExtremeDataGrid from "./pages/DevExtremeDataGrid";
+import { MRTTable } from "./pages/MRTTable";
 
 function App() {
   const [data, setData] = useState<RowData[]>([]);
@@ -22,6 +23,8 @@ function App() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  console.log("data===", data)
 
   return (
     <Router>
@@ -146,6 +149,10 @@ function App() {
             <Route
               path="/devextreme"
               element={<DevExtremeDataGrid data={data} />}
+            />
+            <Route
+              path="/mrt"
+              element={<MRTTable />}
             />
           </Routes>
         )}
