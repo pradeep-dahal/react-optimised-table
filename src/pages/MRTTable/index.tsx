@@ -98,7 +98,7 @@ export const MRTTable: FC = () => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setData(makeData(10_000));
+      setData(makeData(10_000));  
       setIsLoading(false);
     }
   }, []);
