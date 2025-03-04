@@ -24,7 +24,7 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  console.log("data===", data)
+  console.log("data===", data);
 
   return (
     <Router>
@@ -113,6 +113,18 @@ function App() {
                 DevExtreme
               </Link>
             </li>
+            <li>
+              <Link
+                to="/mrt"
+                style={{
+                  padding: "8px 16px",
+                  background: "#f0f0f0",
+                  borderRadius: "4px",
+                }}
+              >
+                Material React Table
+              </Link>
+            </li>
           </ul>
         </nav>
 
@@ -150,10 +162,7 @@ function App() {
               path="/devextreme"
               element={<DevExtremeDataGrid data={data} />}
             />
-            <Route
-              path="/mrt"
-              element={<MRTTable />}
-            />
+            <Route path="/mrt" element={<MRTTable />} />
           </Routes>
         )}
       </div>

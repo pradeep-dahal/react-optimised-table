@@ -1,91 +1,105 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react'
+import { FC, useEffect, useMemo, useRef, useState } from "react";
 import {
   MaterialReactTable,
   MRT_ColumnDef,
   MRT_RowVirtualizer,
   MRT_SortingState,
+  MRT_TableInstance,
   useMaterialReactTable,
-} from 'material-react-table';
-import { makeData, type Person } from './makeData';
+} from "material-react-table";
+import jsonData from "../../data.json";
+
+type Person = (typeof jsonData)[0];
 
 export const MRTTable: FC = () => {
+  const [quantityAndRateHidden, setQuantityAndRateHidden] = useState(false);
+
+  const toggleQuantityAndRateHidden = (
+    table: MRT_TableInstance<Person>,
+    value: boolean
+  ) => {
+    table.setColumnVisibility({ quantity: value });
+    table.setColumnVisibility({ rate: value });
+  };
+
   const columns = useMemo<MRT_ColumnDef<Person>[]>(
     //column definitions...
     () => [
       {
-        accessorKey: 'firstName',
-        header: 'First Name',
+        accessorKey: "claim_ref",
+        header: "Ref",
         size: 150,
       },
       {
-        accessorKey: 'middleName',
-        header: 'Middle Name',
+        accessorKey: "title",
+        header: "Description",
         size: 170,
       },
       {
-        accessorKey: 'lastName',
-        header: 'Last Name',
+        accessorKey: "unit",
+        header: "Unit",
         size: 150,
       },
       {
-        accessorKey: 'email',
-        header: 'Email Address',
-        size: 300,
+        accessorKey: "quantity",
+        header: "Qty",
+        size: 150,
       },
       {
-        accessorKey: 'phoneNumber',
-        header: 'Phone Number',
-        size: 250,
+        accessorKey: "rate",
+        header: "Rate",
+        size: 150,
       },
       {
-        accessorKey: 'address',
-        header: 'Address',
-        size: 300,
+        accessorKey: "total_sum",
+        header: "Total Sum",
+        Header: () => {
+          return (
+            <span>
+              "Total Sum"
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleQuantityAndRateHidden(table, !quantityAndRateHidden);
+                  setQuantityAndRateHidden(!quantityAndRateHidden);
+                }}
+              >
+                '🔵'
+              </button>
+            </span>
+          );
+        },
+        size: 150,
       },
       {
-        accessorKey: 'zipCode',
-        header: 'Zip Code',
+        accessorKey: "claimed_to_date",
+        header: "Progress",
       },
       {
-        accessorKey: 'city',
-        header: 'City',
+        accessorKey: "current_percentage",
+        header: "Qty Complete",
         size: 220,
       },
       {
-        accessorKey: 'state',
-        header: 'State',
+        accessorKey: "current_quantity",
+        header: "Work Progress",
       },
       {
-        accessorKey: 'country',
-        header: 'Country',
+        accessorKey: "previous_approved_percentage",
+        header: "Previous Approved",
         size: 350,
       },
       {
-        accessorKey: 'petName',
-        header: 'Pet Name',
+        accessorKey: "previous_approved_quantity",
+        header: "Previous Approved Qty",
       },
       {
-        accessorKey: 'age',
-        header: 'Age',
-      },
-      {
-        accessorKey: 'salary',
-        header: 'Salary',
-      },
-      {
-        accessorKey: 'dateOfBirth',
-        header: 'Date of Birth',
-      },
-      {
-        accessorKey: 'dateOfJoining',
-        header: 'Date of Joining',
-      },
-      {
-        accessorKey: 'isActive',
-        header: 'Is Active',
+        accessorKey: "previous_approved_claim",
+        header: "Previous Approved Amount",
       },
     ],
-    [],
+    [quantityAndRateHidden]
     //end
   );
 
@@ -97,21 +111,19 @@ export const MRTTable: FC = () => {
   const [sorting, setSorting] = useState<MRT_SortingState>([]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setData(makeData(10_000));
+    if (typeof window !== "undefined") {
+      setData(jsonData);
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    //scroll to the top of the table when the sorting changes
     try {
       rowVirtualizerInstanceRef.current?.scrollToIndex?.(0);
     } catch (error) {
       console.error(error);
     }
   }, [sorting]);
-
 
   const table = useMaterialReactTable({
     columns,
@@ -125,16 +137,21 @@ export const MRTTable: FC = () => {
     enableColumnPinning: true,
     enableRowNumbers: true,
     enableRowVirtualization: true,
-    muiTableContainerProps: { sx: { maxHeight: '600px' } },
+    muiTableContainerProps: { sx: { maxHeight: "600px" } },
     onSortingChange: setSorting,
-    state: { isLoading, sorting },
+    state: {
+      isLoading,
+      sorting,
+    },
+
     rowVirtualizerInstanceRef, //optional
     rowVirtualizerOptions: { overscan: 20 }, //optionally customize the row virtualizer
     // columnVirtualizerOptions: { overscan: 2 }, //optionally customize the column virtualizer
   });
 
-
   return (
-    <MaterialReactTable table={table} />
-  )
-}
+    <div style={{ width: "100vw", height: "100%" }}>
+      <MaterialReactTable table={table} />;
+    </div>
+  );
+};

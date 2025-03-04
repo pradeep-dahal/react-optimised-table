@@ -1,3 +1,4 @@
+//@ts-check
 import React, { useMemo, useState } from "react";
 import {
   useReactTable,
@@ -10,51 +11,12 @@ import { FixedSizeList as List } from "react-window";
 // Create a column helper for easier column definition
 const columnHelper = createColumnHelper();
 
-// -------------------------------------------
-// 1. Generate a large dataset with sub-rows
-// -------------------------------------------
-function makeData() {
-  const data = [];
-
-  // For demonstration, we'll create 1000 "parent" rows,
-  // each with 6 sub-rows => total 7000 rows.
-  // Adjust these numbers as needed to exceed 6000.
-  for (let i = 0; i < 1000; i++) {
-    const parentRow = {
-      ref: `अनु ${i + 1}`, // Example "Ref"
-      description: `Parent Row #${i + 1}`,
-      unit: "Day",
-      qty: 1,
-      rate: 10,
-      totalSum: 10,
-      progress: Math.random() * 100,
-      qtyComplete: Math.random().toFixed(2),
-      workProgress: (Math.random() * 1).toFixed(2),
-      previousAmt: (Math.random() * 100).toFixed(2),
-      currentQty: 0,
-      claimAmount: 0,
-      action: "",
-      // We store subRows here. TanStack Table can read them via getSubRows.
-      subRows: [],
-    };
-
-    // Create some sub-rows for each parent
-
-    data.push(parentRow);
-  }
-
-  return data;
-}
-
-// ---------------------------------------------------------
-// 2. Define the Virtualized Cascading Table component
-// ---------------------------------------------------------
 export default function VirtualizedCascadingTable() {
   // Define columns
   const columns = useMemo(
     () => [
-      columnHelper.accessor("ref", {
-        id: "ref",
+      columnHelper.accessor("claim_ref", {
+        id: "claim_ref",
         header: ({ table }) => (
           <>
             <button
@@ -64,7 +26,7 @@ export default function VirtualizedCascadingTable() {
             >
               {table.getIsAllRowsExpanded() ? "👇" : "👉"}
             </button>{" "}
-            First Name
+            Ref
           </>
         ),
         cell: ({ row, getValue }) => (
@@ -88,7 +50,7 @@ export default function VirtualizedCascadingTable() {
                   {row.getIsExpanded() ? "👇" : "👉"}
                 </button>
               ) : (
-                "🔵"
+                ""
               )}{" "}
               {getValue<boolean>()}
             </div>
@@ -96,13 +58,13 @@ export default function VirtualizedCascadingTable() {
         ),
         footer: (props) => props.column.id,
       }),
-      columnHelper.accessor("description", {
+      columnHelper.accessor("title", {
         header: ({ table }) => (
           <span>
             "Description"
             <button
               onClick={() => {
-                const column = table.getColumn("ref");
+                const column = table.getColumn("claim_ref");
                 if (column) {
                   column.toggleVisibility(!column.getIsVisible());
                 }
@@ -118,7 +80,7 @@ export default function VirtualizedCascadingTable() {
         header: "Unit",
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor("qty", {
+      columnHelper.accessor("quantity", {
         header: "Qty",
         cell: (info) => info.getValue(),
       }),
@@ -127,10 +89,24 @@ export default function VirtualizedCascadingTable() {
         cell: (info) => `$ ${info.getValue()}`,
       }),
       columnHelper.accessor("totalSum", {
-        header: "Total Sum",
-        cell: (info) => `$ ${(info.getValue() || 0).toFixed(2)}`,
+        header: ({ table }) => (
+          <span>
+            "Total Sum"
+            <button
+              onClick={() => {
+                const column = table.getColumn("ref");
+                if (column) {
+                  column.toggleVisibility(!column.getIsVisible());
+                }
+              }}
+            >
+              '🔵'
+            </button>
+          </span>
+        ),
+        cell: (info) => `$ ${(info.getValue() || 0)?.toFixed(2)}`,
       }),
-      columnHelper.accessor("progress", {
+      columnHelper.accessor("claimed_to_date", {
         header: "Progress",
         cell: (info) => {
           const val = info.getValue() || 0;
