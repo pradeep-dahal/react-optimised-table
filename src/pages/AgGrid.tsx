@@ -25,7 +25,11 @@ const AgGrid = ({ data }: Props) => {
     { field: "name", headerName: "Name", width: 180 },
     { field: "email", headerName: "Email", width: 220 },
     { field: "department", headerName: "Department", width: 150 },
-    { field: "position", headerName: "Position", width: 150 },
+    {
+      field: "position",
+      headerName: "Position",
+      width: 150,
+    },
     { field: "location", headerName: "Location", width: 150 },
     { field: "startDate", headerName: "Start Date", width: 120 },
     {
@@ -161,6 +165,7 @@ const AgGrid = ({ data }: Props) => {
     resizable: true,
     sortable: true,
     filter: true,
+    editable: true,
   };
 
   // Add master detail configuration
@@ -208,8 +213,6 @@ const AgGrid = ({ data }: Props) => {
       return () => clearTimeout(timer);
     }
   }, [data]);
-
-  console.log({ data });
 
   return (
     <div>

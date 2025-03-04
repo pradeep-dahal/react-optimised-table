@@ -1,323 +1,256 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  flexRender,
   createColumnHelper,
-  ColumnDef,
-  getExpandedRowModel,
-  ColumnPinningState,
-  VisibilityState,
+  getCoreRowModel,
+  flexRender,
 } from "@tanstack/react-table";
-import { RowData, measureRenderTime } from "../utils/dataGenerator";
 import { FixedSizeList as List } from "react-window";
 
-interface Props {
-  data: RowData[];
+// Create a column helper for easier column definition
+const columnHelper = createColumnHelper();
+
+// -------------------------------------------
+// 1. Generate a large dataset with sub-rows
+// -------------------------------------------
+function makeData() {
+  const data = [];
+
+  // For demonstration, we'll create 1000 "parent" rows,
+  // each with 6 sub-rows => total 7000 rows.
+  // Adjust these numbers as needed to exceed 6000.
+  for (let i = 0; i < 1000; i++) {
+    const parentRow = {
+      ref: `अनु ${i + 1}`, // Example "Ref"
+      description: `Parent Row #${i + 1}`,
+      unit: "Day",
+      qty: 1,
+      rate: 10,
+      totalSum: 10,
+      progress: Math.random() * 100,
+      qtyComplete: Math.random().toFixed(2),
+      workProgress: (Math.random() * 1).toFixed(2),
+      previousAmt: (Math.random() * 100).toFixed(2),
+      currentQty: 0,
+      claimAmount: 0,
+      action: "",
+      // We store subRows here. TanStack Table can read them via getSubRows.
+      subRows: [],
+    };
+
+    // Create some sub-rows for each parent
+
+    data.push(parentRow);
+  }
+
+  return data;
 }
 
-const TanstackTable = ({ data }: Props) => {
-  const [renderTime, setRenderTime] = useState<number | null>(null);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-    "unit.rate": false,
-    "product.id": false,
-    "product.category": false,
-    "product.subcategory": false,
-    "order.date": false,
-    "order.quantity": false,
-    "order.discount": false,
-    "vendor.rating": false,
-    "vendor.lastDelivery": false,
-    "metrics.growth": false,
-    "metrics.target": false,
-    "metrics.achievement": false,
-  });
-
-  const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
-    left: ["id"],
-    right: [],
-  });
-
-  const columnHelper = createColumnHelper<RowData>();
-
-  // Define columns for TanStack Table
+// ---------------------------------------------------------
+// 2. Define the Virtualized Cascading Table component
+// ---------------------------------------------------------
+export default function VirtualizedCascadingTable() {
+  // Define columns
   const columns = useMemo(
     () => [
-      columnHelper.accessor("id", {
-        header: "ID",
-        size: 80,
+      columnHelper.accessor("ref", {
+        id: "ref",
+        header: ({ table }) => (
+          <>
+            <button
+              {...{
+                onClick: table.getToggleAllRowsExpandedHandler(),
+              }}
+            >
+              {table.getIsAllRowsExpanded() ? "👇" : "👉"}
+            </button>{" "}
+            First Name
+          </>
+        ),
+        cell: ({ row, getValue }) => (
+          <div
+            style={{
+              // Since rows are flattened by default,
+              // we can use the row.depth property
+              // and paddingLeft to visually indicate the depth
+              // of the row
+              paddingLeft: `${row.depth * 2}rem`,
+            }}
+          >
+            <div>
+              {row.getCanExpand() ? (
+                <button
+                  {...{
+                    onClick: row.getToggleExpandedHandler(),
+                    style: { cursor: "pointer" },
+                  }}
+                >
+                  {row.getIsExpanded() ? "👇" : "👉"}
+                </button>
+              ) : (
+                "🔵"
+              )}{" "}
+              {getValue<boolean>()}
+            </div>
+          </div>
+        ),
+        footer: (props) => props.column.id,
       }),
-      columnHelper.accessor("name", {
-        header: "Name",
-        size: 180,
+      columnHelper.accessor("description", {
+        header: ({ table }) => (
+          <span>
+            "Description"
+            <button
+              onClick={() => {
+                const column = table.getColumn("ref");
+                if (column) {
+                  column.toggleVisibility(!column.getIsVisible());
+                }
+              }}
+            >
+              '🔵'
+            </button>
+          </span>
+        ),
+        cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor("email", {
-        header: "Email",
-        size: 220,
-      }),
-      columnHelper.accessor("department", {
-        header: "Department",
-        size: 150,
-      }),
-      columnHelper.accessor("position", {
-        header: "Position",
-        size: 150,
-      }),
-      columnHelper.accessor("location", {
-        header: "Location",
-        size: 150,
-      }),
-      columnHelper.accessor("startDate", {
-        header: "Start Date",
-        size: 120,
-      }),
-      columnHelper.accessor("salary", {
-        header: "Salary",
-        size: 120,
-        cell: (info) => `$${info.getValue().toLocaleString()}`,
-      }),
-      columnHelper.accessor("performance", {
-        header: "Performance",
-        size: 120,
-        cell: (info) => `${info.getValue()}%`,
-      }),
-      columnHelper.accessor("status", {
-        header: "Status",
-        size: 120,
-      }),
-
-      // Unit group
-      columnHelper.group({
+      columnHelper.accessor("unit", {
         header: "Unit",
-        id: "unit",
-        columns: [
-          columnHelper.accessor((row) => row.unit.qty, {
-            id: "unit.qty",
-            header: "Qty",
-            size: 100,
-          }),
-          columnHelper.accessor((row) => row.unit.rate, {
-            id: "unit.rate",
-            header: "Rate",
-            size: 100,
-            cell: (info) => `$${info.getValue().toLocaleString()}`,
-          }),
-          columnHelper.accessor((row) => row.unit.totalSum, {
-            id: "unit.totalSum",
-            header: "Total Sum",
-            size: 120,
-            cell: (info) => `$${info.getValue().toLocaleString()}`,
-          }),
-        ],
+        cell: (info) => info.getValue(),
       }),
-
-      // Product group
-      columnHelper.group({
-        header: "Product",
-        id: "product",
-        columns: [
-          columnHelper.accessor((row) => row.product.id, {
-            id: "product.id",
-            header: "Product ID",
-            size: 120,
-          }),
-          columnHelper.accessor((row) => row.product.category, {
-            id: "product.category",
-            header: "Category",
-            size: 130,
-          }),
-          columnHelper.accessor((row) => row.product.subcategory, {
-            id: "product.subcategory",
-            header: "Subcategory",
-            size: 140,
-          }),
-          columnHelper.accessor((row) => row.product.price, {
-            id: "product.price",
-            header: "Price",
-            size: 100,
-            cell: (info) => `$${info.getValue().toLocaleString()}`,
-          }),
-        ],
+      columnHelper.accessor("qty", {
+        header: "Qty",
+        cell: (info) => info.getValue(),
       }),
-
-      // Order group
-      columnHelper.group({
-        header: "Order",
-        id: "order",
-        columns: [
-          columnHelper.accessor((row) => row.order.date, {
-            id: "order.date",
-            header: "Date",
-            size: 110,
-          }),
-          columnHelper.accessor((row) => row.order.quantity, {
-            id: "order.quantity",
-            header: "Quantity",
-            size: 100,
-          }),
-          columnHelper.accessor((row) => row.order.discount, {
-            id: "order.discount",
-            header: "Discount %",
-            size: 110,
-            cell: (info) => `${info.getValue()}%`,
-          }),
-          columnHelper.accessor((row) => row.order.total, {
-            id: "order.total",
-            header: "Total",
-            size: 100,
-            cell: (info) => `$${info.getValue().toLocaleString()}`,
-          }),
-        ],
+      columnHelper.accessor("rate", {
+        header: "Rate",
+        cell: (info) => `$ ${info.getValue()}`,
       }),
-
-      // Vendor group
-      columnHelper.group({
-        header: "Vendor",
-        id: "vendor",
-        columns: [
-          columnHelper.accessor((row) => row.vendor.name, {
-            id: "vendor.name",
-            header: "Vendor",
-            size: 150,
-          }),
-          columnHelper.accessor((row) => row.vendor.rating, {
-            id: "vendor.rating",
-            header: "Rating",
-            size: 100,
-          }),
-          columnHelper.accessor((row) => row.vendor.lastDelivery, {
-            id: "vendor.lastDelivery",
-            header: "Last Delivery",
-            size: 130,
-          }),
-        ],
+      columnHelper.accessor("totalSum", {
+        header: "Total Sum",
+        cell: (info) => `$ ${(info.getValue() || 0).toFixed(2)}`,
       }),
+      columnHelper.accessor("progress", {
+        header: "Progress",
+        cell: (info) => {
+          const val = info.getValue() || 0;
+          return `${val.toFixed(2)}%`;
+        },
+      }),
+      columnHelper.accessor("qtyComplete", {
+        header: "Qty Complete",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("workProgress", {
+        header: "Work Progress",
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor("previousAmt", {
+        header: "Previous Amt",
+        cell: (info) => `$ ${info.getValue()}`,
+      }),
+      // Example of an editable cell
+      columnHelper.accessor("currentQty", {
+        header: "Current Qty",
+        cell: ({ getValue, row }) => {
+          // We track local state for this example
+          // const [val, setVal] = useState(getValue() || 0);
 
-      // Metrics group
-      columnHelper.group({
-        header: "Metrics",
-        id: "metrics",
-        columns: [
-          columnHelper.accessor((row) => row.metrics.sales, {
-            id: "metrics.sales",
-            header: "Sales",
-            size: 120,
-            cell: (info) => `$${info.getValue().toLocaleString()}`,
-          }),
-          columnHelper.accessor((row) => row.metrics.growth, {
-            id: "metrics.growth",
-            header: "Growth %",
-            size: 100,
-            cell: (info) => `${info.getValue()}%`,
-          }),
-          columnHelper.accessor((row) => row.metrics.target, {
-            id: "metrics.target",
-            header: "Target",
-            size: 120,
-            cell: (info) => `$${info.getValue().toLocaleString()}`,
-          }),
-          columnHelper.accessor((row) => row.metrics.achievement, {
-            id: "metrics.achievement",
-            header: "Achievement %",
-            size: 140,
-            cell: (info) => `${info.getValue()}%`,
-          }),
-        ],
+          // You might want to store this in your global state,
+          // or a form library. For a quick demo, we do local state.
+          const onChange = (e) => {
+            const newVal = parseFloat(e.target.value || 0);
+            // setVal(newVal);
+            // Also update the row's original data if desired:
+            row.original.currentQty = newVal;
+          };
+
+          return (
+            <input
+              type="number"
+              value={getValue() || 0}
+              onChange={onChange}
+              style={{ width: "100%" }}
+            />
+          );
+        },
+      }),
+      // Another editable cell example
+      columnHelper.accessor("claimAmount", {
+        header: "Claim Amount",
+        cell: ({ getValue, row }) => {
+          const [val, setVal] = useState(getValue() || 0);
+
+          const onChange = (e) => {
+            const newVal = parseFloat(e.target.value || 0);
+            setVal(newVal);
+            row.original.claimAmount = newVal;
+          };
+
+          return (
+            <input
+              type="number"
+              value={val}
+              onChange={onChange}
+              style={{ width: "100%" }}
+            />
+          );
+        },
+      }),
+      columnHelper.accessor("action", {
+        header: "Action",
+        cell: () => {
+          // You can render buttons, icons, or anything needed here
+          return <button>Action</button>;
+        },
       }),
     ],
-    [columnHelper]
+    []
   );
 
-  // Set up the table instance
+  // Create state for your data
+  const [data] = useState(() => makeData());
+
+  // Create the table instance
   const table = useReactTable({
     data,
     columns,
-    state: {
-      columnVisibility,
-      columnPinning,
-    },
-    onColumnVisibilityChange: setColumnVisibility,
+    // We tell the table where to find sub-rows for nested data
+    getSubRows: (row) => row.subRows,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-    columnResizeMode: "onChange",
   });
 
-  // Toggle column group visibility
-  const toggleColumnGroup = (groupId: string) => {
-    // Find the column group and safely access its columns
-    const columnGroup = columns.find(
-      (col) => "id" in col && col.id === groupId
-    ) as (ColumnDef<RowData> & { columns?: ColumnDef<RowData>[] }) | undefined;
+  // The table internally organizes rows/sub-rows, but for virtualization
+  // we typically want a flat list of "renderable" rows in the correct order.
+  // TanStack Table's getRowModel().rows already provides a flattened
+  // structure including nested rows in order.
+  const allRows = table.getRowModel().rows;
 
-    const groupColumns = columnGroup?.columns;
-
-    if (!groupColumns) return;
-
-    const groupColumnIds = groupColumns
-      .filter((col) => "id" in col)
-      .map((col) => col.id as string);
-
-    const newVisibility = { ...columnVisibility };
-
-    // Check if all columns are visible
-    const allVisible = groupColumnIds.every((id) => !columnVisibility[id]);
-
-    // Toggle visibility for all columns in the group
-    groupColumnIds.forEach((id) => {
-      newVisibility[id] = !allVisible;
-    });
-
-    setColumnVisibility(newVisibility);
-  };
-
-  useEffect(() => {
-    if (data.length > 0) {
-      const endMeasure = measureRenderTime();
-
-      // Small delay to ensure the grid has rendered
-      const timer = setTimeout(() => {
-        setRenderTime(endMeasure());
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
-  }, [data]);
-
-  // Row renderer for react-window
-  const Row = ({
-    index,
-    style,
-  }: {
-    index: number;
-    style: React.CSSProperties;
-  }) => {
-    const row = table.getRowModel().rows[index];
-    if (!row) return null;
+  // ---------------------------------------------------------
+  // 3. Row renderer for react-window
+  // ---------------------------------------------------------
+  const RenderRow = ({ index, style }) => {
+    const row = allRows[index];
 
     return (
-      <div style={{ ...style, display: "flex", width: "100%" }}>
+      <div
+        // Must apply the react-window 'style' for correct row positioning
+        style={{
+          ...style,
+          display: "flex",
+          borderBottom: "1px solid #ddd",
+        }}
+      >
+        {/* Indent child rows to visually show hierarchy */}
+        <div style={{ width: `${row.depth * 20}px` }} />
+        {/* Render each cell */}
         {row.getVisibleCells().map((cell) => (
           <div
             key={cell.id}
             style={{
-              padding: "10px",
-              borderBottom: "1px solid #e5e7eb",
-              width: cell.column.getSize(),
-              position: cell.column.getIsPinned() ? "sticky" : "relative",
-              left:
-                cell.column.getIsPinned() === "left"
-                  ? `${cell.column.getStart("left")}px`
-                  : undefined,
-              right:
-                cell.column.getIsPinned() === "right"
-                  ? `${cell.column.getStart("right")}px`
-                  : undefined,
-              zIndex: cell.column.getIsPinned() ? 1 : 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              flex: 1,
+              padding: "8px",
+              borderRight: "1px solid #eee",
             }}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -327,102 +260,49 @@ const TanstackTable = ({ data }: Props) => {
     );
   };
 
+  // ---------------------------------------------------------
+  // 4. Table layout with header + virtualized body
+  // ---------------------------------------------------------
   return (
-    <div>
-      <h2>TanStack Table Implementation</h2>
-      {renderTime && (
-        <div style={{ marginBottom: "10px" }}>
-          <strong>Render Time:</strong> {renderTime.toFixed(2)}ms
-        </div>
-      )}
-
+    <div style={{ width: "100%", border: "1px solid #ccc" }}>
+      {/* Header */}
       <div
         style={{
-          height: "70vh",
-          width: "100%",
+          display: "flex",
+          borderBottom: "2px solid #ccc",
         }}
       >
-        <div style={{ width: "95vw", overflow: "auto" }}>
-          <div>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        colSpan={header.colSpan}
-                        style={{
-                          width: header.getSize(),
-                          position: header.column.getIsPinned()
-                            ? "sticky"
-                            : "relative",
-                          left:
-                            header.column.getIsPinned() === "left"
-                              ? `${header.getStart("left")}px`
-                              : undefined,
-                          right:
-                            header.column.getIsPinned() === "right"
-                              ? `${header.getStart("right")}px`
-                              : undefined,
-                          padding: "10px",
-                          textAlign: "left",
-                          borderBottom: "1px solid #e5e7eb",
-                          cursor: header.column.getCanSort()
-                            ? "pointer"
-                            : "default",
-                          userSelect: "none",
-                          zIndex: header.column.getIsPinned() ? 1 : 0,
-                        }}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                        {header.column.getCanSort() && (
-                          <span>
-                            {{ asc: " 🔼", desc: " 🔽" }[
-                              header.column.getIsSorted() as string
-                            ] ?? " ⏺️"}
-                          </span>
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-            </table>
+        {table.getHeaderGroups().map((headerGroup) => (
+          <div key={headerGroup.id} style={{ display: "flex", flex: 1 }}>
+            {headerGroup.headers.map((header) => (
+              <div
+                key={header.id}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  borderRight: "1px solid #eee",
+                  fontWeight: "bold",
+                }}
+              >
+                {flexRender(
+                  header.column.columnDef.header,
+                  header.getContext()
+                )}
+              </div>
+            ))}
           </div>
-
-          <List
-            height={400} // Adjust based on your needs
-            itemCount={table.getRowModel().rows.length}
-            itemSize={50} // Adjust row height as needed
-            width="100%"
-          >
-            {Row}
-          </List>
-        </div>
+        ))}
       </div>
 
-      <div style={{ marginTop: "15px" }}>
-        <h3>Features used for optimization:</h3>
-        <ul>
-          <li>Virtual scrolling with react-window for efficient rendering</li>
-          <li>Column pinning for better navigation</li>
-          <li>
-            Column grouping with expand/collapse functionality via toggle
-            buttons
-          </li>
-          <li>Core row model for efficient rendering</li>
-          <li>Column resizing capabilities</li>
-        </ul>
-      </div>
+      {/* Virtualized Body */}
+      <List
+        height={600} // Adjust the table body height as needed
+        itemCount={allRows.length}
+        itemSize={35} // Row height in pixels
+        width="100%"
+      >
+        {RenderRow}
+      </List>
     </div>
   );
-};
-
-export default TanstackTable;
+}
