@@ -113,6 +113,19 @@ function App() {
                 DevExtreme
               </Link>
             </li>
+
+            <li>
+              <Link
+                to="/mrt"
+                style={{
+                  padding: "8px 16px",
+                  background: "#f0f0f0",
+                  borderRadius: "4px",
+                }}
+              >
+                MRT Table
+              </Link>
+            </li>
           </ul>
         </nav>
 
