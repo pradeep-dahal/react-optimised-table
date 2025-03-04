@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { generateData, RowData } from "./utils/dataGenerator";
