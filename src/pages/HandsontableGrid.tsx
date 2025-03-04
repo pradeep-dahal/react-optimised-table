@@ -255,6 +255,10 @@ const HandsontableGrid = ({ data }: Props) => {
           dropdownMenu={true}
           filters={true}
           columnSorting={true}
+          collapsibleColumns={[
+            { row: -2, col: 11, collapsible: true }, // Add the button to the 4th-level header of the 1st column - counting from the first table row upwards.
+            { row: -2, col: 12, collapsible: true }, // Add the button to the 3rd-level header of the 5th column - counting from the first table row upwards.
+          ]}
           //   sortIndicator={true}
         />
       </div>
