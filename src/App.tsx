@@ -1,13 +1,14 @@
 //@ts-nocheck
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { generateData, RowData } from "./utils/dataGenerator";
+import { RowData } from "./utils/dataGenerator";
 import HandsontableGrid from "./pages/HandsontableGrid";
 import AgGrid from "./pages/AgGrid";
 import GlideDataGrid from "./pages/GlideDataGrid";
 import TanstackTable from "./pages/TanstackTable";
 import DevExtremeDataGrid from "./pages/DevExtremeDataGrid";
 import { MRTTable } from "./pages/MRTTable";
+import jsonData from "./data.json";
 
 function App() {
   const [data, setData] = useState<RowData[]>([]);
@@ -17,15 +18,12 @@ function App() {
     // Generate data asynchronously to prevent UI blocking
     setLoading(true);
     const timer = setTimeout(() => {
-      const generatedData = generateData(6000);
-      setData(generatedData);
+      setData(jsonData);
       setLoading(false);
     }, 10);
 
     return () => clearTimeout(timer);
   }, []);
-
-  console.log("data===", data);
 
   return (
     <Router>
