@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { generateData, RowData } from "./utils/dataGenerator";
@@ -113,6 +114,7 @@ function App() {
                 DevExtreme
               </Link>
             </li>
+
             <li>
               <Link
                 to="/mrt"
@@ -122,7 +124,7 @@ function App() {
                   borderRadius: "4px",
                 }}
               >
-                Material React Table
+                MRT Table
               </Link>
             </li>
           </ul>

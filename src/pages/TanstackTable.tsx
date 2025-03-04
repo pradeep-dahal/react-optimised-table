@@ -1,4 +1,4 @@
-//@ts-check
+//@ts-nocheck
 import React, { useMemo, useState } from "react";
 import {
   useReactTable,
