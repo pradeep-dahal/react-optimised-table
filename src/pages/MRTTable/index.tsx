@@ -8,18 +8,21 @@ import {
   useMaterialReactTable,
 } from "material-react-table";
 import jsonData from "../../data.json";
+import { BiChevronLeft, BiChevronRight } from "react-icons/bi";
 
 type Person = (typeof jsonData)[0];
 
 export const MRTTable: FC = () => {
-  const [quantityAndRateHidden, setQuantityAndRateHidden] = useState(false);
+  const [quantityAndRateHidden, setQuantityAndRateHidden] = useState(true);
 
   const toggleQuantityAndRateHidden = (
     table: MRT_TableInstance<Person>,
     value: boolean
   ) => {
-    table.setColumnVisibility({ quantity: value });
-    table.setColumnVisibility({ rate: value });
+    table.setColumnVisibility({
+      quantity: value,
+      rate: value,
+    });
   };
 
   const columns = useMemo<MRT_ColumnDef<Person>[]>(
@@ -55,26 +58,56 @@ export const MRTTable: FC = () => {
         header: "Total Sum",
         Header: () => {
           return (
-            <span>
+            <div style={{ display: "flex", alignItems: "center" }}>
               "Total Sum"
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleQuantityAndRateHidden(table, !quantityAndRateHidden);
-                  setQuantityAndRateHidden(!quantityAndRateHidden);
-                }}
-              >
-                '🔵'
-              </button>
-            </span>
+              {quantityAndRateHidden ? (
+                <BiChevronRight
+                  size={36}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleQuantityAndRateHidden(table, !quantityAndRateHidden);
+                    setQuantityAndRateHidden(!quantityAndRateHidden);
+                  }}
+                />
+              ) : (
+                <BiChevronLeft
+                  size={36}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleQuantityAndRateHidden(table, !quantityAndRateHidden);
+                    setQuantityAndRateHidden(!quantityAndRateHidden);
+                  }}
+                />
+              )}
+            </div>
           );
         },
         size: 150,
+        Cell: ({ cell }) => {
+          return (
+            <input
+              type="number"
+              value={cell.getValue() as number}
+              style={{ background: "none", padding: 5, color: "black" }}
+            />
+          );
+        },
       },
       {
         accessorKey: "claimed_to_date",
         header: "Progress",
+        Cell: ({ cell }) => {
+          return (
+            <input
+              type="number"
+              value={cell.getValue() as number}
+              style={{ background: "none", padding: 5, color: "black" }}
+              disabled
+            />
+          );
+        },
       },
       {
         accessorKey: "current_percentage",
@@ -117,6 +150,8 @@ export const MRTTable: FC = () => {
     }
   }, []);
 
+  console.log(data);
+
   useEffect(() => {
     try {
       rowVirtualizerInstanceRef.current?.scrollToIndex?.(0);
@@ -135,7 +170,7 @@ export const MRTTable: FC = () => {
     enableGlobalFilterModes: true,
     enablePagination: false,
     enableColumnPinning: true,
-    enableRowNumbers: true,
+    enableRowNumbers: false,
     enableRowVirtualization: true,
     muiTableContainerProps: { sx: { maxHeight: "600px" } },
     onSortingChange: setSorting,
@@ -143,14 +178,15 @@ export const MRTTable: FC = () => {
       isLoading,
       sorting,
     },
-
+    enableExpandAll: true,
+    enableExpanding: true,
     rowVirtualizerInstanceRef, //optional
     rowVirtualizerOptions: { overscan: 20 }, //optionally customize the row virtualizer
     // columnVirtualizerOptions: { overscan: 2 }, //optionally customize the column virtualizer
   });
 
   return (
-    <div style={{ width: "100vw", height: "100%" }}>
+    <div style={{ width: "90vw", height: "100%" }}>
       <MaterialReactTable table={table} />;
     </div>
   );

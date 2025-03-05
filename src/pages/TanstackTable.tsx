@@ -7,11 +7,13 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { FixedSizeList as List } from "react-window";
+import jsonData from "../data.json";
 
 // Create a column helper for easier column definition
 const columnHelper = createColumnHelper();
 
 export default function VirtualizedCascadingTable() {
+  const [hiddenColumns, setHiddenColumns] = useState(["quantity", "rate"]);
   // Define columns
   const columns = useMemo(
     () => [
@@ -88,16 +90,18 @@ export default function VirtualizedCascadingTable() {
         header: "Rate",
         cell: (info) => `$ ${info.getValue()}`,
       }),
-      columnHelper.accessor("totalSum", {
+      columnHelper.accessor("total_sum", {
         header: ({ table }) => (
           <span>
             "Total Sum"
             <button
               onClick={() => {
-                const column = table.getColumn("ref");
-                if (column) {
-                  column.toggleVisibility(!column.getIsVisible());
-                }
+                hiddenColumns.forEach((col) => {
+                  const column = table.getColumn(col);
+                  if (column) {
+                    column.toggleVisibility(!column.getIsVisible());
+                  }
+                });
               }}
             >
               '🔵'
@@ -113,20 +117,20 @@ export default function VirtualizedCascadingTable() {
           return `${val.toFixed(2)}%`;
         },
       }),
-      columnHelper.accessor("qtyComplete", {
+      columnHelper.accessor("current_quantity", {
         header: "Qty Complete",
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor("workProgress", {
+      columnHelper.accessor("current_progress", {
         header: "Work Progress",
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor("previousAmt", {
+      columnHelper.accessor("previous_approved_amount", {
         header: "Previous Amt",
         cell: (info) => `$ ${info.getValue()}`,
       }),
       // Example of an editable cell
-      columnHelper.accessor("currentQty", {
+      columnHelper.accessor("current_quantity", {
         header: "Current Qty",
         cell: ({ getValue, row }) => {
           // We track local state for this example
@@ -151,41 +155,12 @@ export default function VirtualizedCascadingTable() {
           );
         },
       }),
-      // Another editable cell example
-      columnHelper.accessor("claimAmount", {
-        header: "Claim Amount",
-        cell: ({ getValue, row }) => {
-          const [val, setVal] = useState(getValue() || 0);
-
-          const onChange = (e) => {
-            const newVal = parseFloat(e.target.value || 0);
-            setVal(newVal);
-            row.original.claimAmount = newVal;
-          };
-
-          return (
-            <input
-              type="number"
-              value={val}
-              onChange={onChange}
-              style={{ width: "100%" }}
-            />
-          );
-        },
-      }),
-      columnHelper.accessor("action", {
-        header: "Action",
-        cell: () => {
-          // You can render buttons, icons, or anything needed here
-          return <button>Action</button>;
-        },
-      }),
     ],
-    []
+    [hiddenColumns]
   );
 
   // Create state for your data
-  const [data] = useState(() => makeData());
+  const [data] = useState(() => jsonData);
 
   // Create the table instance
   const table = useReactTable({
